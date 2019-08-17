@@ -1,6 +1,7 @@
 package nets
 
 import (
+	"errors"
 	"fmt"
 	"net"
 	"topaza/interfaces"
@@ -16,6 +17,20 @@ type Server struct {
 	IP string
 	// 服务器监听的端口
 	Port int
+}
+
+// 定义当前客户端连接所绑定的 handle api (目前 handle 是固定的，后续应优化为用户自定的)
+func CallBackToClient(conn *net.TCPConn, data []byte, count int) error {
+	// 回显业务
+	fmt.Println("[Conn Handle] Callback to client.")
+
+	_, err := conn.Write(data[:count])
+	if err != nil {
+		fmt.Println("Write back buf error: ", err)
+		return errors.New("callback to client error")
+	}
+
+	return nil
 }
 
 // 启动服务器
@@ -42,6 +57,9 @@ func (s *Server) Start() {
 		}
 		fmt.Println("Start framework server", s.Name, "success, listening...")
 
+		// 连接 id
+		var cid uint32 = 0
+
 		// 阻塞的等待客户端连接，处理客户端连接业务（读写）
 		for {
 			// 如果有客户端连接，阻塞会返回
@@ -51,24 +69,12 @@ func (s *Server) Start() {
 				continue
 			}
 
-			// 已经与客户端建立连接，回显最大 512 字节内容
-			go func() {
-				for {
-					buf := make([]byte, 512)
-					count, err := conn.Read(buf)
-					if err != nil {
-						fmt.Println("Receive buf error: ", err)
-						continue
-					}
-					fmt.Printf("Receive client buf: %s, count: %d\n", buf, count)
+			// 将处理新连接的业务方法和 conn 进行绑定，得到连接模块
+			dealConn := NewConnection(conn, cid, CallBackToClient)
+			cid++
 
-					// 回显
-					if _, err := conn.Write(buf[0: count]); err != nil {
-						fmt.Println("Write back buf error: ", err)
-						continue
-					}
-				}
-			}()
+			// 启动连接的业务处理
+			go dealConn.Start()
 		}
 	}()
 }
