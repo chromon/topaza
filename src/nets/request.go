@@ -11,11 +11,11 @@ type Request struct {
 }
 
 // 获取当前连接
-func(r *Request) Connection() interfaces.IConnection {
+func (r *Request) Connection() interfaces.IConnection {
 	return r.conn
 }
 
 // 获取请求的消息数据
-func(r *Request) Data() []byte {
+func (r *Request) Data() []byte {
 	return r.data
 }
