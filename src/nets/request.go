@@ -2,6 +2,7 @@ package nets
 
 import "topaza/interfaces"
 
+// 实现 IRequest 接口
 type Request struct {
 	// 已经和客户端建立好的连接
 	conn interfaces.IConnection

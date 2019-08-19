@@ -10,7 +10,7 @@ type IConnection interface {
 	// 停止连接，结束当前连接的工作
 	Stop()
 
-	// 获取当前连接绑卡的 Socket Connection
+	// 获取当前连接绑定的 Socket Connection
 	TCPConnection() *net.TCPConn
 
 	// 获取当前连接模块的连接 id

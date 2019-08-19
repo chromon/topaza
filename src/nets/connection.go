@@ -17,22 +17,23 @@ type Connection struct {
 	// 当前的连接状态
 	isClosed bool
 
-	// 当前连接所绑定的处理业务的方法 API
-	handleAPI interfaces.HandleFunc
-
 	// 通知当前连接退出/停止 Channel
 	ExitChannel chan bool
+
+	// 连接处理方法 Router
+	Router interfaces.IRouter
+
 }
 
 // 初始化连接模块方法
 func NewConnection(conn *net.TCPConn, connId uint32,
-	callbackAPI interfaces.HandleFunc) *Connection {
+	router interfaces.IRouter) *Connection {
 	c := &Connection {
 		Conn: conn,
 		ConnId: connId,
-		handleAPI: callbackAPI,
 		isClosed: false,
 		ExitChannel: make(chan bool, 1),
+		Router: router,
 	}
 
 	return c
@@ -57,17 +58,26 @@ func (c *Connection) StartReader() {
 	for {
 		// 读取客户端的数据到 buf 中，最大 512
 		buf := make([]byte, 512)
-		count, err := c.Conn.Read(buf)
+		_, err := c.Conn.Read(buf)
 		if err != nil {
 			fmt.Println("Receive buf err: ", err)
 			continue
 		}
 
-		// 调用当前连接所绑定的 HandleAPI
-		if err := c.handleAPI(c.Conn, buf, count); err != nil {
-			fmt.Println("ConnId: ", c.ConnId, "handle error: ", err)
-			break
+		// 得到当前 conn 数据的 Request 请求数据
+		req := Request {
+			conn: c,
+			data: buf,
 		}
+
+		// 执行注册的路由方法
+		go func(request interfaces.IRequest) {
+			// 从路由中，找到注册绑定的 Conn 对应的 router 调用
+			c.Router.PreHandle(request)
+			c.Router.Handle(request)
+			c.Router.PostHandle(request)
+		}(&req)
+
 	}
 }
 
