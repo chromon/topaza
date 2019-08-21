@@ -1,0 +1,6 @@
+{
+  "Name": "ServerApp v0.4",
+  "Host": "127.0.0.1",
+  "TCPPort": 8989,
+  "MaxConn": 3
+}

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net"
 	"topaza/interfaces"
+	"topaza/utils"
 )
 
 // iServer 的接口实现，定义一个 Server 的服务器模块
@@ -23,8 +24,10 @@ type Server struct {
 // 启动服务器
 func (s *Server) Start() {
 
-	fmt.Println("[Start] Server Listener at IP: ", s.IP,
-		", Port: ", s.Port, " is starting...")
+	fmt.Printf("Server name: %s, listener at IP: %s, port: %d is starting...",
+		utils.GlobalObject.Name,
+		utils.GlobalObject.Host,
+		utils.GlobalObject.TCPPort)
 
 	go func() {
 		// IP:Port
@@ -94,10 +97,10 @@ func (s *Server) AddRouter(router interfaces.IRouter) {
 func NewServer(name string) interfaces.IServer {
 	// 创建 Server 对象
 	server := &Server {
-		Name: name,
+		Name: utils.GlobalObject.Name,
 		Network: "tcp4",
-		IP: "0.0.0.0",
-		Port: 8989,
+		IP: utils.GlobalObject.Host,
+		Port: utils.GlobalObject.TCPPort,
 		Router: nil,
 	}
 
