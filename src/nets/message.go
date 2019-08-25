@@ -5,7 +5,7 @@ type Message struct {
 	Id uint32
 
 	// 消息长度
-	DateLen uint32
+	DataLen uint32
 
 	// 消息内容
 	Data []byte
@@ -13,7 +13,7 @@ type Message struct {
 
 // 获取消息 id
 func (m *Message) GetMsgId() uint32 {
-	return m.GetMsgId()
+	return m.Id
 }
 
 // 设置消息 id
@@ -23,12 +23,12 @@ func (m *Message) SetMsgId(id uint32) {
 
 // 获取消息长度
 func (m *Message) GetDataLen() uint32 {
-	return m.DateLen
+	return m.DataLen
 }
 
 // 设置消息长度
 func (m *Message) SetDataLen(len uint32) {
-	m.DateLen = len
+	m.DataLen = len
 }
 
 // 获取消息的内容

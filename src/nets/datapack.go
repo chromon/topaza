@@ -60,7 +60,7 @@ func(dp *DataPack) Unpack(binaryData []byte) (interfaces.IMessage, error) {
 	msg := &Message{}
 
 	// 读取 DataLen
-	err := binary.Read(dataBuff, binary.LittleEndian, &msg.DateLen)
+	err := binary.Read(dataBuff, binary.LittleEndian, &msg.DataLen)
 	if err != nil {
 		return nil, err
 	}
@@ -72,7 +72,7 @@ func(dp *DataPack) Unpack(binaryData []byte) (interfaces.IMessage, error) {
 	}
 
 	// 判断 dataLen 是否已经超出最大包长度
-	if (utils.GlobalObject.MaxPackageSize > 0 && msg.DateLen > utils.GlobalObject.MaxPackageSize) {
+	if (utils.GlobalObject.MaxPackageSize > 0 && msg.DataLen > utils.GlobalObject.MaxPackageSize) {
 		return nil, errors.New("too large message data receive")
 	}
 

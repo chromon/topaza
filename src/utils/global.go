@@ -57,5 +57,5 @@ func init() {
 	}
 
 	// 从配置文件中加载数据
-	GlobalObject.Reload()
+	//GlobalObject.Reload()
 }
