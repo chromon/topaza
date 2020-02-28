@@ -1,6 +1,7 @@
 package nets
 
 import (
+	"errors"
 	"fmt"
 	"net"
 	"topaza/interfaces"
@@ -10,12 +11,26 @@ import (
 type Server struct {
 	// 服务器名称
 	Name string
+
 	// 服务器绑定的 IP 版本
 	Network string
+
 	// 服务器监听的 IP
 	IP string
+
 	// 服务器监听的 Port
 	Port int
+}
+
+// 自定义当前客户端连接所绑定 handle api
+func CallbackToClient(conn *net.TCPConn, buf []byte, n int) error {
+	// 数据回显业务
+	fmt.Println("Conn handle callback to client...")
+	if _, err := conn.Write(buf[:n]); err != nil {
+		fmt.Println("Write back buf error:", err)
+		return errors.New("call back to client error")
+	}
+	return nil
 }
 
 // 启动服务器
@@ -40,7 +55,10 @@ func (s *Server) Start() {
 		}
 		fmt.Println("Start server success,", s.Name, "listening...")
 
+
 		// 阻塞等待客户端连接，处理客户端连接业务
+		// 默认 conn ID
+		var cid uint32 = 0
 		for {
 			// 如果有客户端连接，阻塞返回
 			conn, err := listener.AcceptTCP()
@@ -49,24 +67,13 @@ func (s *Server) Start() {
 				continue
 			}
 
-			// 基本业务
-			go func() {
-				for {
-					// 从客户的读取信息
-					buf := make([]byte, 512)
-					n, err := conn.Read(buf)
-					if err != nil {
-						fmt.Println("Server read buf error: ", err)
-						continue
-					}
-					fmt.Printf("Client send message: %s, len: %d\n", buf[:n], n)
+			// 将处理新连接的业务方法和 conn 进行绑定，得到连接模块
+			dealConn := NewConnection(conn, cid, CallbackToClient)
+			// 连接 ID 自增
+			cid++
 
-					// 简单向客户端回写
-					if _, err := conn.Write(buf[:n]); err != nil {
-						fmt.Println("Server write buf error: ", err)
-					}
-				}
-			}()
+			// 启动当前连接业务处理
+			go dealConn.Start()
 		}
 	}()
 }
