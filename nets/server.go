@@ -1,7 +1,6 @@
 package nets
 
 import (
-	"errors"
 	"fmt"
 	"net"
 	"topaza/interfaces"
@@ -20,17 +19,9 @@ type Server struct {
 
 	// 服务器监听的 Port
 	Port int
-}
 
-// 自定义当前客户端连接所绑定 handle api
-func CallbackToClient(conn *net.TCPConn, buf []byte, n int) error {
-	// 数据回显业务
-	fmt.Println("Conn handle callback to client...")
-	if _, err := conn.Write(buf[:n]); err != nil {
-		fmt.Println("Write back buf error:", err)
-		return errors.New("call back to client error")
-	}
-	return nil
+	// 当前 Server 添加 router
+	Router interfaces.IRouter
 }
 
 // 启动服务器
@@ -68,7 +59,7 @@ func (s *Server) Start() {
 			}
 
 			// 将处理新连接的业务方法和 conn 进行绑定，得到连接模块
-			dealConn := NewConnection(conn, cid, CallbackToClient)
+			dealConn := NewConnection(conn, cid, s.Router)
 			// 连接 ID 自增
 			cid++
 
@@ -94,6 +85,12 @@ func (s *Server) Serve() {
 	select {}
 }
 
+// 添加路由：将当前服务注册路由方法，供客户端连接处理使用
+func (s *Server) AddRouter(router interfaces.IRouter) {
+	s.Router = router
+	fmt.Println("Add router success.")
+}
+
 // 初始化 Server 模块
 func NewServer(name string) interfaces.IServer {
 	s := &Server{
@@ -101,6 +98,7 @@ func NewServer(name string) interfaces.IServer {
 		Network: "tcp4",
 		IP: "127.0.0.1",
 		Port: 8080,
+		Router: nil,
 	}
 	return s
 }

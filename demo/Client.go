@@ -34,7 +34,7 @@ func main() {
 			return
 		}
 
-		fmt.Printf("Server call back: %s, len: %d\n", buf[:n], n)
+		fmt.Printf("Server call back: \n%slen: %d\n\n", buf[:n], n)
 		time.Sleep(1 * time.Second)
 	}
 }
