@@ -41,7 +41,7 @@ func (pr *PingRouter) PostHandle(request interfaces.IRequest) {
 // 基于框架开发的服务器端应用程序
 func main() {
 	// 创建一个 Server 模块
-	s := nets.NewServer("[Server V0.1]")
+	s := nets.NewServer()
 	// 框架添加自定义 router
 	s.AddRouter(&PingRouter{})
 	// 启动 Server

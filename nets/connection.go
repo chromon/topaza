@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net"
 	"topaza/interfaces"
+	"topaza/utils"
 )
 
 // 连接模块
@@ -47,8 +48,8 @@ func (c *Connection) StartReader() {
 	defer c.Stop()
 
 	for {
-		// 读取客户端的数据到 buf 中， 最大 512 字节
-		buf := make([]byte, 512)
+		// 读取客户端的数据到 buf 中， 最大 xx 字节
+		buf := make([]byte, utils.GlobalObject.MaxPackageSize)
 		_, err := c.Conn.Read(buf)
 		if err != nil {
 			fmt.Println("Read buf error:", err)

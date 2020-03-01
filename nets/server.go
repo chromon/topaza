@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net"
 	"topaza/interfaces"
+	"topaza/utils"
 )
 
 // IServer 的接口实现， 定义一个 Server 的服务器模块
@@ -27,6 +28,8 @@ type Server struct {
 // 启动服务器
 func (s *Server) Start() {
 
+	fmt.Printf("Server name: %s, version: %s\n",
+		utils.GlobalObject.Name, utils.GlobalObject.Version)
 	fmt.Printf("Start Server listener at IP: %s, Port: %d\n", s.IP, s.Port)
 
 	// 服务器会一直阻塞在等待连接，应该添加到协程中
@@ -44,7 +47,7 @@ func (s *Server) Start() {
 			fmt.Println("Listen", s.Network, " error:", err)
 			return
 		}
-		fmt.Println("Start server success,", s.Name, "listening...")
+		fmt.Println("Start server success, listening...")
 
 
 		// 阻塞等待客户端连接，处理客户端连接业务
@@ -92,12 +95,12 @@ func (s *Server) AddRouter(router interfaces.IRouter) {
 }
 
 // 初始化 Server 模块
-func NewServer(name string) interfaces.IServer {
+func NewServer() interfaces.IServer {
 	s := &Server{
-		Name: name,
+		Name: utils.GlobalObject.Name,
 		Network: "tcp4",
-		IP: "127.0.0.1",
-		Port: 8080,
+		IP: utils.GlobalObject.Host,
+		Port: utils.GlobalObject.TCPPort,
 		Router: nil,
 	}
 	return s
