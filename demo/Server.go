@@ -12,31 +12,35 @@ type PingRouter struct {
 }
 
 // 在处理 conn 业务之前的方法（hook）
-func (pr *PingRouter) PreHandle(request interfaces.IRequest) {
-	fmt.Println("Call router preHandle")
-	_, err := request.GetConnection().GetTCPConnection().Write([]byte("before ping...\n"))
-	if err != nil {
-		fmt.Println("Call back before ping error:", err)
-	}
-}
+//func (pr *PingRouter) PreHandle(request interfaces.IRequest) {
+//	fmt.Println("Call router preHandle")
+//	_, err := request.GetConnection().GetTCPConnection().Write([]byte("before ping...\n"))
+//	if err != nil {
+//		fmt.Println("Call back before ping error:", err)
+//	}
+//}
 
 // 在处理 conn 业务的主方法
 func (pr *PingRouter) Handle(request interfaces.IRequest) {
-	fmt.Println("Call router handle")
-	_, err := request.GetConnection().GetTCPConnection().Write([]byte("ping...\n"))
+	fmt.Println("call router handle")
+	fmt.Println("receive from client msgId:", request.GetMsgID(),
+		" data =", string(request.GetData()))
+
+	// 读取客户端数据，再回写
+	err := request.GetConnection().SendMsg(1, []byte("ping ..."))
 	if err != nil {
-		fmt.Println("Call back ping error:", err)
+		fmt.Println("server send message error:", err)
 	}
 }
 
 // 在处理 conn 业务之后的方法（hook）
-func (pr *PingRouter) PostHandle(request interfaces.IRequest) {
-	fmt.Println("Call router postHandle")
-	_, err := request.GetConnection().GetTCPConnection().Write([]byte("after ping...\n"))
-	if err != nil {
-		fmt.Println("Call back after ping error:", err)
-	}
-}
+//func (pr *PingRouter) PostHandle(request interfaces.IRequest) {
+//	fmt.Println("Call router postHandle")
+//	_, err := request.GetConnection().GetTCPConnection().Write([]byte("after ping...\n"))
+//	if err != nil {
+//		fmt.Println("Call back after ping error:", err)
+//	}
+//}
 
 // 基于框架开发的服务器端应用程序
 func main() {

@@ -58,5 +58,5 @@ func init() {
 	}
 
 	// 从 conf/info.json 中加载
-	GlobalObject.Reload()
+	//GlobalObject.Reload()
 }

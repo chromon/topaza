@@ -2,8 +2,10 @@ package main
 
 import (
 	"fmt"
+	"io"
 	"net"
 	"time"
+	"topaza/nets"
 )
 
 // 模拟客户端
@@ -19,22 +21,49 @@ func main() {
 	}
 
 	for {
-		// 连接调用 Write 方法，向服务器发送数据
-		_, err := conn.Write([]byte("Hello server!"))
+		// 将消息封包
+		dp := nets.NewDataPack()
+		binaryMsg, err := dp.Pack(nets.NewMsgPackage(0, []byte("client test message")))
 		if err != nil {
-			fmt.Println("Conn write error:", err)
+			fmt.Println("client pack message error:", err)
 			return
 		}
 
-		// 接收服务器回写的数据
-		buf := make([]byte, 512)
-		n, err := conn.Read(buf)
+		_, err = conn.Write(binaryMsg)
 		if err != nil {
-			fmt.Println("Conn read error:", err)
+			fmt.Println("client write message error:", err)
 			return
 		}
 
-		fmt.Printf("Server call back: \n%slen: %d\n\n", buf[:n], n)
+		// 服务器回复信息
+		// 读取 tcp 流中的 head
+		binaryHead := make([]byte, dp.GetHeadLen())
+		if _, err := io.ReadFull(conn, binaryHead); err != nil {
+			fmt.Println("client read head error:", err)
+			break
+		}
+
+		// head 拆包
+		msgHead, err := dp.Unpack(binaryHead)
+		if err != nil {
+			fmt.Println("client unpack error:", err)
+			break
+		}
+
+		// 由 dataLen 读取 data
+		if msgHead.GetMsgLen() > 0 {
+			msg := msgHead.(*nets.Message)
+			msg.Data = make([]byte, msg.GetMsgLen())
+
+			if _, err := io.ReadFull(conn, msg.Data); err != nil {
+				fmt.Println("read msg data error:", err)
+				return
+			}
+
+			fmt.Println("receive server msgID:", msg.Id,
+				" len:", msg.DataLen, " data:", msg.Data)
+		}
+
 		time.Sleep(1 * time.Second)
 	}
 }

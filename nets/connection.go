@@ -1,10 +1,11 @@
 package nets
 
 import (
+	"errors"
 	"fmt"
+	"io"
 	"net"
 	"topaza/interfaces"
-	"topaza/utils"
 )
 
 // 连接模块
@@ -49,17 +50,45 @@ func (c *Connection) StartReader() {
 
 	for {
 		// 读取客户端的数据到 buf 中， 最大 xx 字节
-		buf := make([]byte, utils.GlobalObject.MaxPackageSize)
-		_, err := c.Conn.Read(buf)
-		if err != nil {
-			fmt.Println("Read buf error:", err)
-			continue
+		//buf := make([]byte, utils.GlobalObject.MaxPackageSize)
+		//_, err := c.Conn.Read(buf)
+		//if err != nil {
+		//	fmt.Println("Read buf error:", err)
+		//	continue
+		//}
+
+		// 创建拆包对象
+		dp := NewDataPack()
+
+		// 读取客户端 message head 二进制流 8个字节
+		headData := make([]byte, dp.GetHeadLen())
+		if _, err := io.ReadFull(c.GetTCPConnection(), headData); err != nil {
+			fmt.Println("read message head error:", err)
+			break
 		}
+
+		// 得到 message 信息
+		msg, err := dp.Unpack(headData)
+		if err != nil {
+			fmt.Println("unpack error:", err)
+			break
+		}
+
+		// 根据 dataLen 读取 data
+		var data []byte
+		if msg.GetMsgLen() > 0 {
+			data = make([]byte, msg.GetMsgLen())
+			if _, err := io.ReadFull(c.GetTCPConnection(), data); err != nil {
+				fmt.Println("read message data error:", err)
+				break
+			}
+		}
+		msg.SetData(data)
 
 		// 得到当前 conn 的 request 请求
 		req := Request {
 			conn: c,
-			data: buf,
+			msg: msg,
 		}
 
 		// 执行注册的路由方法
@@ -116,7 +145,24 @@ func (c *Connection) RemoteAddr() net.Addr {
 	return c.Conn.RemoteAddr()
 }
 
-// 发送数据，将数据发送给远程的客户端
-func (c *Connection) Send(data []byte) error {
+// 发送数据，将数据封包后发送给远程的客户端
+func (c *Connection) SendMsg(msgId uint32, data []byte) error {
+	if c.IsClosed == true {
+		return errors.New("connection closed")
+	}
+
+	// 封包 |MsgDataLen|MsgId|Data|
+	dp := NewDataPack()
+	binaryMsg, err := dp.Pack(NewMsgPackage(msgId, data))
+	if err != nil {
+		fmt.Println("pack error msg id: ", msgId)
+		return errors.New("pack error msg")
+	}
+
+	if _, err := c.Conn.Write(binaryMsg); err != nil {
+		fmt.Println("write msg id: ", msgId, " error:", err)
+		return errors.New("conn write error")
+	}
+
 	return nil
 }
