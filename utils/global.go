@@ -28,6 +28,12 @@ type Global struct {
 
 	// 框架数据包的最大值
 	MaxPackageSize uint32
+
+	// 当前业务工作 worker 池的 goroutine 数量
+	WorkerPoolSize uint32
+
+	// 最多可以开辟的工作池数量
+	MaxWorkerTaskSize uint32
 }
 
 // 全局的对外对象
@@ -55,6 +61,10 @@ func init() {
 		TCPPort: 8080,
 		MaxConn: 1000,
 		MaxPackageSize: 4096,
+		// 工作池队列数量
+		WorkerPoolSize: 10,
+		// 每个 worker 对应的消息队列中任务的最大值
+		MaxWorkerTaskSize: 1024,
 	}
 
 	// 从 conf/info.json 中加载

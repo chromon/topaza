@@ -6,6 +6,7 @@ import (
 	"io"
 	"net"
 	"topaza/interfaces"
+	"topaza/utils"
 )
 
 // 连接模块
@@ -87,8 +88,15 @@ func (c *Connection) StartReader() {
 			msg: msg,
 		}
 
-		// 执行注册的路由方法从路由中，找到注册绑定的 conn 对应的 router 调用
-		go c.MsgHandler.DoMsgHandler(&req)
+		if utils.GlobalObject.WorkerPoolSize > 0 {
+			// 已经开启了工作池，将消息发送给 worker 工作池即可
+			c.MsgHandler.SendMsgToTaskQueue(&req)
+		} else {
+			// 执行注册的路由方法从路由中，找到注册绑定的 conn 对应的 router 调用
+			go c.MsgHandler.DoMsgHandler(&req)
+		}
+
+
 	}
 }
 

@@ -34,6 +34,9 @@ func (s *Server) Start() {
 
 	// 服务器会一直阻塞在等待连接，应该添加到协程中
 	go func() {
+		// 开启消息队列及 worker 工作池
+		s.MsgHandler.StartWorkerPool()
+
 		// 获取 TCP 的 Addr
 		addr, err := net.ResolveTCPAddr(s.Network, fmt.Sprintf("%s:%d", s.IP, s.Port))
 		if err != nil {
