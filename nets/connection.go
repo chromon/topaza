@@ -24,19 +24,19 @@ type Connection struct {
 	// 通知当前连接已经退出/停止的 channel
 	ExitChan chan bool
 
-	// 连接处理 Router
-	Router interfaces.IRouter
+	// 消息的管理 MsgID 和对应的处理业务 api
+	MsgHandler interfaces.IMessageHandle
 }
 
 // 初始化连接模块的方法
 func NewConnection(conn *net.TCPConn, connID uint32,
-	router interfaces.IRouter) *Connection {
+	msgHandler interfaces.IMessageHandle) *Connection {
 	c := &Connection{
 		Conn: conn,
 		ConnID: connID,
 		IsClosed: false,
 		ExitChan: make(chan bool, 1),
-		Router: router,
+		MsgHandler: msgHandler,
 	}
 	return c
 }
@@ -91,13 +91,8 @@ func (c *Connection) StartReader() {
 			msg: msg,
 		}
 
-		// 执行注册的路由方法
-		go func(request interfaces.IRequest) {
-			// 从路由中，找到注册绑定的 conn 对应的 router 调用
-			c.Router.PreHandle(request)
-			c.Router.Handle(request)
-			c.Router.PostHandle(request)
-		}(&req)
+		// 执行注册的路由方法从路由中，找到注册绑定的 conn 对应的 router 调用
+		go c.MsgHandler.DoMsgHandler(&req)
 	}
 }
 

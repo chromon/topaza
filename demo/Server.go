@@ -22,12 +22,12 @@ type PingRouter struct {
 
 // 在处理 conn 业务的主方法
 func (pr *PingRouter) Handle(request interfaces.IRequest) {
-	fmt.Println("call router handle")
+	fmt.Println("call ping router handle")
 	fmt.Println("receive from client msgId:", request.GetMsgID(),
 		" data =", string(request.GetData()))
 
 	// 读取客户端数据，再回写
-	err := request.GetConnection().SendMsg(1, []byte("ping ..."))
+	err := request.GetConnection().SendMsg(0, []byte("ping ..."))
 	if err != nil {
 		fmt.Println("server send message error:", err)
 	}
@@ -42,12 +42,29 @@ func (pr *PingRouter) Handle(request interfaces.IRequest) {
 //	}
 //}
 
+type HiRouter struct {
+	nets.BaseRouter
+}
+
+func (pr *HiRouter) Handle(request interfaces.IRequest) {
+	fmt.Println("call hi router handle")
+	fmt.Println("receive from client msgId:", request.GetMsgID(),
+		" data =", string(request.GetData()))
+
+	// 读取客户端数据，再回写
+	err := request.GetConnection().SendMsg(1, []byte("hi ..."))
+	if err != nil {
+		fmt.Println("server send message error:", err)
+	}
+}
+
 // 基于框架开发的服务器端应用程序
 func main() {
 	// 创建一个 Server 模块
 	s := nets.NewServer()
 	// 框架添加自定义 router
-	s.AddRouter(&PingRouter{})
+	s.AddRouter(0, &PingRouter{})
+	s.AddRouter(1, &HiRouter{})
 	// 启动 Server
 	s.Serve()
 }

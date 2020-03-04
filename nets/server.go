@@ -21,8 +21,8 @@ type Server struct {
 	// 服务器监听的 Port
 	Port int
 
-	// 当前 Server 添加 router
-	Router interfaces.IRouter
+	// 当前 server 的消息管理模块，用来绑定 msgID 和对应的处理业务 API 关系
+	MsgHandler interfaces.IMessageHandle
 }
 
 // 启动服务器
@@ -62,7 +62,7 @@ func (s *Server) Start() {
 			}
 
 			// 将处理新连接的业务方法和 conn 进行绑定，得到连接模块
-			dealConn := NewConnection(conn, cid, s.Router)
+			dealConn := NewConnection(conn, cid, s.MsgHandler)
 			// 连接 ID 自增
 			cid++
 
@@ -89,8 +89,8 @@ func (s *Server) Serve() {
 }
 
 // 添加路由：将当前服务注册路由方法，供客户端连接处理使用
-func (s *Server) AddRouter(router interfaces.IRouter) {
-	s.Router = router
+func (s *Server) AddRouter(msgID uint32, router interfaces.IRouter) {
+	s.MsgHandler.AddRouter(msgID, router)
 	fmt.Println("Add router success.")
 }
 
@@ -101,7 +101,7 @@ func NewServer() interfaces.IServer {
 		Network: "tcp4",
 		IP: utils.GlobalObject.Host,
 		Port: utils.GlobalObject.TCPPort,
-		Router: nil,
+		MsgHandler: NewMsgHandle(),
 	}
 	return s
 }

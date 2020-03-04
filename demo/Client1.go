@@ -11,7 +11,7 @@ import (
 // 模拟客户端
 func main() {
 
-	fmt.Println("Client starting...")
+	fmt.Println("Client1 starting...")
 
 	// 连接远程服务器，得到连接
 	conn, err := net.Dial("tcp", "127.0.0.1:8080")
@@ -23,15 +23,15 @@ func main() {
 	for {
 		// 将消息封包
 		dp := nets.NewDataPack()
-		binaryMsg, err := dp.Pack(nets.NewMsgPackage(0, []byte("client test message")))
+		binaryMsg, err := dp.Pack(nets.NewMsgPackage(1, []byte("client test message")))
 		if err != nil {
-			fmt.Println("client pack message error:", err)
+			fmt.Println("client1 pack message error:", err)
 			return
 		}
 
 		_, err = conn.Write(binaryMsg)
 		if err != nil {
-			fmt.Println("client write message error:", err)
+			fmt.Println("client1 write message error:", err)
 			return
 		}
 
@@ -39,14 +39,14 @@ func main() {
 		// 读取 tcp 流中的 head
 		binaryHead := make([]byte, dp.GetHeadLen())
 		if _, err := io.ReadFull(conn, binaryHead); err != nil {
-			fmt.Println("client read head error:", err)
+			fmt.Println("client1 read head error:", err)
 			break
 		}
 
 		// head 拆包
 		msgHead, err := dp.Unpack(binaryHead)
 		if err != nil {
-			fmt.Println("client unpack error:", err)
+			fmt.Println("client1 unpack error:", err)
 			break
 		}
 
@@ -61,7 +61,7 @@ func main() {
 			}
 
 			fmt.Println("receive server msgID:", msg.Id,
-				" len:", msg.DataLen, " data:", msg.Data)
+				" len:", msg.DataLen, " data:", string(msg.Data))
 		}
 
 		time.Sleep(1 * time.Second)
