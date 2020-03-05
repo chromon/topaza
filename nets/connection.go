@@ -5,12 +5,16 @@ import (
 	"fmt"
 	"io"
 	"net"
+	"sync"
 	"topaza/interfaces"
 	"topaza/utils"
 )
 
 // 连接模块
 type Connection struct {
+	// 当前 conn 所属 server
+	TCPServer interfaces.IServer
+
 	// 当前连接的 socket TCP 套接字
 	Conn *net.TCPConn
 
@@ -30,19 +34,31 @@ type Connection struct {
 
 	// 消息的管理 MsgID 和对应的处理业务 api
 	MsgHandler interfaces.IMessageHandle
+
+	// 连接属性集合
+	property map[string]interface{}
+
+	// 保护连接属性锁
+	propertyLock sync.RWMutex
 }
 
 // 初始化连接模块的方法
-func NewConnection(conn *net.TCPConn, connID uint32,
+func NewConnection(server interfaces.IServer, conn *net.TCPConn, connID uint32,
 	msgHandler interfaces.IMessageHandle) *Connection {
 	c := &Connection{
+		TCPServer: server,
 		Conn: conn,
 		ConnID: connID,
 		IsClosed: false,
 		ExitChan: make(chan bool, 1),
 		MsgChan: make(chan []byte),
 		MsgHandler: msgHandler,
+		property: make(map[string]interface{}),
 	}
+
+	// 将 conn 加入 ConnManager 中
+	c.TCPServer.GetConnManager().Add(c)
+
 	return c
 }
 
@@ -128,8 +144,11 @@ func (c *Connection) Start() {
 	// 启动从当前连接读取数据业务
 	// 服务器端从当前连接中读业务
 	go c.StartReader()
-	// TODO 服务器启动从当前连接中写数据业务
+	// 服务器启动从当前连接中写数据业务
 	go c.StartWriter()
+
+	// 按照开发者传进来的创建连接后需要调用的处理业务，执行 hook 函数
+	c.TCPServer.CallOnConnStart(c)
 }
 
 // 停止连接，结束当前连接的工作
@@ -141,6 +160,9 @@ func (c *Connection) Stop() {
 	}
 	c.IsClosed = true
 
+	// 按照开发者传进来的销毁连接前需要调用的处理业务，执行 hook 函数
+	c.TCPServer.CallOnConnStop(c)
+
 	// 关闭 socket 连接
 	err := c.Conn.Close()
 	if err != nil {
@@ -150,6 +172,9 @@ func (c *Connection) Stop() {
 
 	// 关闭 writer
 	c.ExitChan <- true
+
+	// 将当前连接从 connManager 中移除
+	c.TCPServer.GetConnManager().Remove(c)
 
 	// 回收资源，关闭管道
 	close(c.ExitChan)
@@ -189,4 +214,38 @@ func (c *Connection) SendMsg(msgId uint32, data []byte) error {
 	c.MsgChan <- binaryMsg
 
 	return nil
+}
+
+// 设置连接属性
+func (c *Connection) SetProperty(key string, value interface{}) {
+	// 加写锁
+	c.propertyLock.Lock()
+	defer c.propertyLock.Unlock()
+
+	// 添加一个连接属性
+	c.property[key] = value
+}
+
+// 获取连接属性
+func (c *Connection) GetProperty(key string) (interface{}, error) {
+	// 加读锁
+	c.propertyLock.RLock()
+	defer c.propertyLock.RUnlock()
+
+	// 读取属性
+	if value, ok := c.property[key]; ok {
+		return value, nil
+	}
+
+	return nil, errors.New("no property found")
+}
+
+// 删除连接属性
+func (c *Connection) RemoveProperty(key string) {
+	// 加写锁
+	c.propertyLock.Lock()
+	defer c.propertyLock.Unlock()
+
+	// 删除属性
+	delete(c.property, key)
 }

@@ -23,6 +23,15 @@ type Server struct {
 
 	// 当前 server 的消息管理模块，用来绑定 msgID 和对应的处理业务 API 关系
 	MsgHandler interfaces.IMessageHandle
+
+	// server 连接管理器
+	ConnManager interfaces.IConnManager
+
+	// server 创建连接后，自动调用的 hook 函数
+	OnConnStart func(conn interfaces.IConnection)
+
+	// server 销毁连接后，自动调用的 hook 函数
+	OnConnStop func(conn interfaces.IConnection)
 }
 
 // 启动服务器
@@ -64,8 +73,16 @@ func (s *Server) Start() {
 				continue
 			}
 
+			// 连接最大数量判断，如果超过最大连接数量，则关闭当前连接
+			if s.ConnManager.Len() >= utils.GlobalObject.MaxConn {
+				// TODO 个客户的响应超出最大连接信息
+				fmt.Println("too many connections, max conn count:", utils.GlobalObject.MaxConn)
+				conn.Close()
+				continue
+			}
+
 			// 将处理新连接的业务方法和 conn 进行绑定，得到连接模块
-			dealConn := NewConnection(conn, cid, s.MsgHandler)
+			dealConn := NewConnection(s, conn, cid, s.MsgHandler)
 			// 连接 ID 自增
 			cid++
 
@@ -78,6 +95,8 @@ func (s *Server) Start() {
 // 停止服务器
 func (s *Server) Stop() {
 	// 将资源、状态、连接回收停止
+	fmt.Println("server stop")
+	s.ConnManager.ClearConn()
 }
 
 // 运行服务器
@@ -97,6 +116,10 @@ func (s *Server) AddRouter(msgID uint32, router interfaces.IRouter) {
 	fmt.Println("Add router success.")
 }
 
+func (s *Server) GetConnManager() interfaces.IConnManager {
+	return s.ConnManager
+}
+
 // 初始化 Server 模块
 func NewServer() interfaces.IServer {
 	s := &Server{
@@ -105,6 +128,33 @@ func NewServer() interfaces.IServer {
 		IP: utils.GlobalObject.Host,
 		Port: utils.GlobalObject.TCPPort,
 		MsgHandler: NewMsgHandle(),
+		ConnManager: NewConnManager(),
 	}
 	return s
+}
+
+// 注册 OnConnStart hook 函数的方法
+func (s *Server) SetOnConnStart(hookFunc func(conn interfaces.IConnection)) {
+	s.OnConnStart = hookFunc
+}
+
+// 注册 OnConnStop hook 函数的方法
+func (s *Server) SetOnConnStop(hookFunc func(conn interfaces.IConnection)) {
+	s.OnConnStop = hookFunc
+}
+
+// 调用 OnConnStart hook 函数的方法
+func (s *Server) CallOnConnStart(conn interfaces.IConnection) {
+	if s.OnConnStart != nil {
+		fmt.Println("call OnConnStart()")
+		s.OnConnStart(conn)
+	}
+}
+
+// 调用 OnConnStop hook 函数的方法
+func (s *Server) CallOnConnStop(conn interfaces.IConnection) {
+	if s.OnConnStop != nil {
+		fmt.Println("call OnConnStop()")
+		s.OnConnStop(conn)
+	}
 }

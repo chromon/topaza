@@ -58,13 +58,43 @@ func (pr *HiRouter) Handle(request interfaces.IRequest) {
 	}
 }
 
+// 创建连接之后执行 hook 函数
+func DoConnBegin(conn interfaces.IConnection) {
+	fmt.Println("conn begin call...")
+	if err := conn.SendMsg(200, []byte("conn begin")); err != nil {
+		fmt.Println(err)
+	}
+
+	// 设置连接属性
+	fmt.Println("set conn property:")
+	conn.SetProperty("name", "ellery")
+
+}
+
+// 断开连接之前需要执行的函数
+func DoConnEnd(conn interfaces.IConnection) {
+	fmt.Println("conn end call...")
+	fmt.Println("connID:", conn.GetConnID(), " lost")
+
+	// 获取连接属性
+	if name, err := conn.GetProperty("name"); err == nil {
+		fmt.Println("conn property name:", name)
+	}
+}
+
 // 基于框架开发的服务器端应用程序
 func main() {
 	// 创建一个 Server 模块
 	s := nets.NewServer()
+
+	// 注册连接 hook 函数
+	s.SetOnConnStart(DoConnBegin)
+	s.SetOnConnStop(DoConnEnd)
+
 	// 框架添加自定义 router
 	s.AddRouter(0, &PingRouter{})
 	s.AddRouter(1, &HiRouter{})
+
 	// 启动 Server
 	s.Serve()
 }
